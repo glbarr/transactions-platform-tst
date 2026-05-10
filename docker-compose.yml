@@ -21,6 +21,8 @@ x-airflow-common: &airflow-common
     - ./airflow/dags:/opt/airflow/dags
     - airflow_logs:/opt/airflow/logs
     - /var/run/docker.sock:/var/run/docker.sock
+    - ./scripts:/opt/airflow/scripts
+    - ./data:/data:ro
   networks:
     - platform_net
   depends_on:
