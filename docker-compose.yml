@@ -3,7 +3,7 @@ x-airflow-common: &airflow-common
   build:
     context: ./airflow
     dockerfile: Dockerfile
-  image: ebury/airflow:2.9.1
+  image: transactions/airflow:2.9.1
   env_file: .env
   environment:
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
@@ -12,7 +12,7 @@ x-airflow-common: &airflow-common
     AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW__CORE__FERNET_KEY}
     AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW__WEBSERVER__SECRET_KEY}
     # Passed to DAGs so DockerOperator knows which dbt image to use
-    DBT_IMAGE: ebury/dbt:1.8.0
+    DBT_IMAGE: transactions/dbt:1.9.0
     PLATFORM_DB_HOST: postgres
     PLATFORM_DB_NAME: ${PLATFORM_DB_NAME}
     PLATFORM_DB_USER: ${PLATFORM_DB_USER}
@@ -30,7 +30,7 @@ x-airflow-common: &airflow-common
 services:
 
   postgres:
-    image: postgres:16
+    image: postgres:latest
     env_file: .env
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -49,7 +49,7 @@ services:
     build:
       context: ./dbt
       dockerfile: Dockerfile
-    image:  ebury/dbt:1.8.0
+    image:  transactions/dbt:1.9.0
     env_file: .env
     environment:
       PLATFORM_DB_HOST: postgres
