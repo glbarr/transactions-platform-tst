@@ -1,0 +1,61 @@
+version: 2
+
+models:
+  - name: stg_transactions
+    description: "Cleaned and cast customer transactions from raw source. DQ-flagged rows preserved."
+    columns:
+      - name: transaction_id
+        description: "Unique transaction identifier. Null if source value is non-numeric."
+        tests:
+          - not_null:
+              where: "not _dq_issue"
+
+      - name: customer_id
+        description: "Customer identifier. Null if missing in source."
+        tests:
+          - not_null:
+              where: "not _dq_issue"
+
+      - name: transaction_date
+        description: "Date of transaction. Handles YYYY-MM-DD and DD-MM-YYYY formats."
+        tests:
+          - not_null:
+              where: "not _dq_issue"
+
+      - name: product_id
+        description: "Product identifier. Null if non-numeric in source."
+        tests:
+          - not_null:
+              where: "not _dq_issue"
+
+      - name: price
+        description: "Unit price. Null if non-numeric string in source."
+        tests:
+          - not_null:
+              where: "not _dq_issue"
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              where: "not _dq_issue and price is not null"
+
+      - name: tax
+        description: "Absolute tax amount. Null if non-numeric string in source."
+        tests:
+          - not_null:
+              where: "not _dq_issue"
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              where: "not _dq_issue and tax is not null"
+
+      - name: quantity
+        description: "Units sold. Null if missing in source."
+        tests:
+          - not_null:
+              where: "not _dq_issue"
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 1
+              where: "not _dq_issue and quantity is not null"
+
+      - name: _dq_issue
+        description: "True if row has any data quality issue."
+        tests:
+          - not_null

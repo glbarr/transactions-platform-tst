@@ -13,6 +13,7 @@ x-airflow-common: &airflow-common
     AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW__WEBSERVER__SECRET_KEY}
     # Passed to DAGs so DockerOperator knows which dbt image to use
     DBT_IMAGE: transactions/dbt:1.9.0
+    DBT_PROJECT_DIR: ${DBT_PROJECT_DIR}
     PLATFORM_DB_HOST: postgres
     PLATFORM_DB_NAME: ${PLATFORM_DB_NAME}
     PLATFORM_DB_USER: ${PLATFORM_DB_USER}
@@ -63,6 +64,8 @@ services:
     entrypoint: ["tail", "-f", "/dev/null"]
     networks:
       - platform_net
+    ports:
+      - "8081:8081"
     depends_on:
       postgres:
         condition: service_healthy

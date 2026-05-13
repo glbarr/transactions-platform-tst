@@ -29,13 +29,21 @@ cleaned as (
             else customer_id::float::integer
         end                                                         as customer_id,
 
-        -- transaction_date: cast to date
+        -- transaction_date: handle both YYYY-MM-DD and DD-MM-YYYY formats
         case
             when transaction_date is null or transaction_date = '' then null
-            else transaction_date::date
-        end                                                         as transaction_date,
+            when transaction_date ~ '^\d{4}-\d{2}-\d{2}$' 
+                then to_date(transaction_date, 'YYYY-MM-DD')
+            when transaction_date ~ '^\d{2}-\d{2}-\d{4}$' 
+                then to_date(transaction_date, 'DD-MM-YYYY')
+            else null
+        end                                                       as transaction_date,
 
-        product_id::integer                                         as product_id,
+        -- product_id: cast to integer, flag non-numeric values (e.g. "P100")
+        case
+            when product_id ~ '^\d+$' then product_id::integer
+            else null
+        end                                                         as product_id,
         trim(product_name)                                          as product_name,
 
         -- quantity: stored as float in source (1.0), cast to integer
@@ -58,11 +66,12 @@ cleaned as (
 
         -- data quality flag
         case
-            when transaction_id !~ '^\d+$'         then true
-            when price !~ '^\d+(\.\d+)?$'           then true
-            when tax !~ '^\d+(\.\d+)?$'             then true
+            when transaction_id !~ '^\d+$'              then true
+            when product_id !~ '^\d+$'                  then true
+            when price !~ '^\d+(\.\d+)?$'               then true
+            when tax !~ '^\d+(\.\d+)?$'                 then true
             when customer_id is null or customer_id = '' then true
-            when quantity is null or quantity = ''   then true
+            when quantity is null or quantity = ''        then true
             else false
         end                                                         as _dq_issue,
 

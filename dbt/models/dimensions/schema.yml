@@ -1,0 +1,22 @@
+version: 2
+
+models:
+  - name: dim_product
+    description: "Product dimension derived from staging transactions."
+    columns:
+      - name: product_sk
+        description: "Surrogate key — MD5 hash of product_id."
+        tests:
+          - not_null
+          - unique
+
+      - name: product_id
+        description: "Natural key from source system."
+        tests:
+          - not_null
+          - unique
+
+      - name: product_name
+        description: "Product name."
+        tests:
+          - not_null

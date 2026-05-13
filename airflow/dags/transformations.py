@@ -1,8 +1,11 @@
 """
 airflow/dags/transformations.py
 
-Runs dbt models and tests against raw.customer_transactions.
+Runs dbt models individually for granular observability and rerunnability.
 Triggered by the ingestion DAG on success.
+
+Task order:
+    stg_transactions -> dim_product -> fact_transactions -> fact_monthly_summary -> dbt_test
 """
 
 import os
@@ -30,7 +33,7 @@ DBT_ENVIRONMENT = {
 
 DBT_MOUNTS = [
     Mount(
-        source="/Users/gabriel/Documents/transactions-platform-tst-1/dbt",
+        source=os.environ.get("DBT_PROJECT_DIR"),
         target="/dbt",
         type="bind",
     )
@@ -41,25 +44,34 @@ DOCKER_KWARGS = {
     "environment": DBT_ENVIRONMENT,
     "mounts": DBT_MOUNTS,
     "network_mode": os.environ.get("DOCKER_NETWORK", "transactions-platform-tst-1_platform_net"),
+    "mount_tmp_dir": False,
     "auto_remove": True,
     "docker_url": "unix:///var/run/docker.sock",
 }
 
+
+def dbt_task(task_id: str, model: str) -> DockerOperator:
+    return DockerOperator(
+        task_id=task_id,
+        command=f"dbt run --profiles-dir /dbt --project-dir /dbt --select {model}",
+        **DOCKER_KWARGS,
+    )
+
+
 with DAG(
     dag_id="transformations",
-    description="Run dbt models and tests on customer transactions",
+    description="Run dbt models on customer transactions",
     start_date=datetime(2024, 1, 1),
-    schedule_interval=None,  # triggered by ingestion DAG
+    schedule_interval=None,
     catchup=False,
     default_args=default_args,
     tags=["platform", "transformations"],
 ) as dag:
 
-    dbt_run = DockerOperator(
-        task_id="dbt_run",
-        command="dbt run --profiles-dir /dbt --project-dir /dbt",
-        **DOCKER_KWARGS,
-    )
+    stg_transactions     = dbt_task("stg_transactions",     "stg_transactions")
+    dim_product          = dbt_task("dim_product",          "dim_product")
+    fact_transactions    = dbt_task("fact_transactions",    "fact_transactions")
+    fact_monthly_summary = dbt_task("fact_monthly_summary", "fact_monthly_summary")
 
     dbt_test = DockerOperator(
         task_id="dbt_test",
@@ -67,4 +79,10 @@ with DAG(
         **DOCKER_KWARGS,
     )
 
-    dbt_run >> dbt_test
+    dbt_deps = DockerOperator(
+    task_id="dbt_deps",
+    command="dbt deps --profiles-dir /dbt --project-dir /dbt",
+    **DOCKER_KWARGS,
+)
+
+dbt_deps >> stg_transactions >> dim_product >> fact_transactions >> fact_monthly_summary >> dbt_test

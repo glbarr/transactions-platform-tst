@@ -1,0 +1,74 @@
+version: 2
+
+models:
+  - name: fact_transactions
+    description: "One row per valid transaction. DQ-flagged and null rows excluded."
+    columns:
+      - name: transaction_id
+        description: "Unique transaction identifier."
+        tests:
+          - not_null
+          - unique
+
+      - name: customer_id
+        description: "Customer identifier."
+        tests:
+          - not_null
+
+      - name: transaction_date
+        description: "Date of transaction."
+        tests:
+          - not_null
+
+      - name: product_id
+        description: "Product natural key."
+        tests:
+          - not_null
+
+      - name: quantity
+        description: "Units sold."
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 1
+
+      - name: price
+        description: "Unit price."
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+
+      - name: total_amount
+        description: "Total transaction value including tax."
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+
+  - name: fact_monthly_summary
+    description: "Monthly aggregated metrics per product."
+    columns:
+      - name: month
+        description: "Month of aggregation."
+        tests:
+          - not_null
+
+      - name: product_id
+        description: "Product natural key."
+        tests:
+          - not_null
+
+      - name: transaction_count
+        description: "Number of transactions in the month."
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 1
+
+      - name: total_revenue_inc_tax
+        description: "Total revenue including tax."
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
